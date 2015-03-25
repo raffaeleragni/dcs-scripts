@@ -5,7 +5,6 @@ Author: RAF
 
 This script takes some concepts from all my other scripts to a more targeted helper for missions
 in a way that follows some conventions for missions style and editing.
-Also the tags will work with sinergy this time. ex. a [periodic] with [deactivable] is not going to respawn because the user must control its flow with the deactivable radio item at that point. Or while a [periodic] and [activable] is not immediately spawned at mission time, because again the user must be in control of what he means to do with it. Some combinations of course will not produce any valuable result, such as [periodic] and [spawnable]
 
 Combinations:
 [periodic] + [activable]: will not spawn at first, but wait for the user to activate it
@@ -47,10 +46,12 @@ do
   helper.data.periodics = {}
   -- This is internal: keeps track of the menus to remove from radio items
   helper.data.menuToRemove = {}
+  -- Keep track of what was spaened
+  helper.data.spawnedNames = {}
   
-  -- [static local] Adds groups of radio items with their callback
+  -- Adds groups of radio items with their callback
   -- a nil groupId goes for all users.
-  local addRadioItemsToTarget = function(target, menuTitle, groupNames, autoRemove, callback)
+  helper.addRadioItemsToTarget = function(self, target, menuTitle, groupNames, autoRemove, callback, menuToRemove)
     
     -- Exit if no items
     if #groupNames == 0 then
@@ -76,9 +77,9 @@ do
         end
         local strippedName = string.gsub(string.gsub(name, '%[.+%]', ''), '%s+', '')
         if autoRemove then
-          local key = 'spawnablepath-'..name
+          local key = menuTitle..'-'..name
           local path = addCommand(strippedName, parentMenu, callback, {self = self, key = key, name = name, removeFN = removeCommand})
-          helper.data.menuToRemove[key] = path
+          self.data.menuToRemove[key] = path
         else
           addCommand(strippedName, parentMenu, callback, {self = self, name = name})
         end
@@ -141,16 +142,17 @@ do
 
   -- (callback) Function to spawn/clone a gorup
   helper.spawn = function(pars)
+    local s = pars.self
     local name = pars.name
     -- Have to use this shortcut, otherwise the clone is not working properly (on mist 3.2)
-    mist.teleportToPoint({gpName = name, action = 'clone', route = mist.getGroupRoute(name, true)})
+    local newGroup = mist.teleportToPoint({gpName = name, action = 'clone', route = mist.getGroupRoute(name, true)})
+    helper.data.spawnedNames[newGroup['name']] = name
   end
 
   -- (callback) activates a group
   -- it also works as a start command to the uncontrolled crafts
   -- pars = {self, name, key, removeFN}
   helper.activate = function (pars)
-    local s = pars.self
     local group = pars.name
     local groupobj = Group.getByName(group)
     -- Remove the radio item since it has been called
@@ -165,7 +167,7 @@ do
   -- pars = {self, name, key, removeFN}
   helper.deactivate = function (pars)
     local s = pars.self
-    local group = pars.group
+    local group = pars.name
     local groupobj = Group.getByName(group)
     -- Remove the radio item since it has been called
     if pars.removeFN then pars.removeFN(s.data.menuToRemove[pars.key]) end
@@ -182,13 +184,17 @@ do
       if event and event.initiator and not Unit.getPlayerName(event.initiator) and (event.id == world.event.S_EVENT_LAND or event.id == world.event.S_EVENT_DEAD) then
           local group = Unit.getGroup(event.initiator)
           -- and contains the tag in the name...
-          env.info('event on group: '..group:getName())
-          if group and group:getName() and string.find(group:getName(), '%[periodic%]') then
+          if group and group:getName() and helper.data.spawnedNames[group:getName()] then
+            local originalName = helper.data.spawnedNames[group:getName()]
+            helper.data.spawnedNames[group:getName()] = nil
             if event.id == world.event.S_EVENT_LAND then
               -- If is landed, trigger a destroy for after 10 minutes from now
-              local function destroyGroup(pars) pars.g:destroy() end
+              local function destroyGroup(pars)
+                pars.g:destroy()
+                self.spawn({name = originalName})
+              end
               timer.scheduleFunction(destroyGroup, {g = group}, timer.getTime() + 600)
-            elseif event.id == world.event.S_EVENT_DEAD and not string.find(group:getName(), '%[deactivable%]') then
+            elseif event.id == world.event.S_EVENT_DEAD then
               -- If it was destroyed, just respawn it immediately
               -- But not deactivables, when they're destroyed by the user radio item, they must reamin so.
               self.spawn({name = group:getName()})
@@ -234,9 +240,9 @@ do
     self:scan()
     -- add items for all types depending on target
     local addItems = function(target)
-      addRadioItemsToTarget(target, 'Spawnables', self.data.spawnables, false, self.spawn)
-      addRadioItemsToTarget(target, 'Activables', self.data.activables, false, self.activate)
-      addRadioItemsToTarget(target, 'Deactivables', self.data.deactivables, false, self.deactivate)
+      self:addRadioItemsToTarget(target, 'Spawnables', self.data.spawnables, false, self.spawn)
+      self:addRadioItemsToTarget(target, 'Activables', self.data.activables, true, self.activate)
+      self:addRadioItemsToTarget(target, 'Deactivables', self.data.deactivables, true, self.deactivate)
     end
     -- Add items to their respective coalition owners
     addItems({autoCoalition = true})
