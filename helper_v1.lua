@@ -178,6 +178,24 @@ do
   -- inside (callback) called at any world event, filters for landing AIs with [periodic] tag, destroys them after 10 minutes of touchdown
   -- also, for the same conditions, but if the group is destroyed, immediately respawn it
   helper.initPeriodics = function(self)
+	  -- Checks if a groups is dead
+	  local is_group_dead = function(name)
+		  local groupobj = Group.getByName(name)
+		  if not groupobj then
+			  return true
+		  end
+		  local units = Group.getUnits(groupobj)
+		  if not units then
+			  return true
+		  end
+		  local alldead = true
+		  for k,unit in pairs(units) do
+			  if alldead and Unit.getLife(unit) > 1.0 then
+				  alldead = false
+			  end
+		  end
+		  return alldead
+	  end    
     -- must be a function, non a variable
     local function hook(event)
       -- If it is not a Player and the event is either LAND or DEAD...
@@ -186,8 +204,8 @@ do
           -- and contains the tag in the name...
           if group and group:getName() and helper.data.spawnedNames[group:getName()] then
             local originalName = helper.data.spawnedNames[group:getName()]
-            helper.data.spawnedNames[group:getName()] = nil
             if event.id == world.event.S_EVENT_LAND then
+              helper.data.spawnedNames[group:getName()] = nil
               -- If is landed, trigger a destroy for after 10 minutes from now
               local function destroyGroup(pars)
                 pars.g:destroy()
@@ -196,8 +214,11 @@ do
               timer.scheduleFunction(destroyGroup, {g = group}, timer.getTime() + 600)
             elseif event.id == world.event.S_EVENT_DEAD then
               -- If it was destroyed, just respawn it immediately
-              -- But not deactivables, when they're destroyed by the user radio item, they must reamin so.
-              self.spawn({name = group:getName()})
+              -- But not deactivables, when they're destroyed by the user radio item, they must reamin so.\
+              if is_group_dead(group:getName()) then
+                helper.data.spawnedNames[group:getName()] = nil
+                self.spawn({name = originalName})
+              end
             end
           end
       end
