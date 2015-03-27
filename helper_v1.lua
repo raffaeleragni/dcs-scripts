@@ -198,8 +198,17 @@ do
 	  end    
     -- must be a function, non a variable
     local function hook(event)
+      
+   
+      
       -- If it is not a Player and the event is either LAND or DEAD...
-      if event and event.initiator and not Unit.getPlayerName(event.initiator) and (event.id == world.event.S_EVENT_LAND or event.id == world.event.S_EVENT_DEAD) then
+      if event and event.initiator and not Unit.getPlayerName(event.initiator) and (
+               event.id == world.event.S_EVENT_LAND
+            or event.id == world.event.S_EVENT_DEAD 
+            or event.id == world.event.S_EVENT_CRASH
+            or event.id == world.event.S_EVENT_EJECTION
+            or event.id == world.event.S_EVENT_DEAD
+            or event.id == world.event.S_EVENT_PILOT_DEAD) then
           local group = Unit.getGroup(event.initiator)
           -- and contains the tag in the name...
           if group and group:getName() and helper.data.spawnedNames[group:getName()] then
@@ -212,8 +221,8 @@ do
                 self.spawn({name = originalName})
               end
               timer.scheduleFunction(destroyGroup, {g = group}, timer.getTime() + 600)
-            elseif event.id == world.event.S_EVENT_DEAD then
-              -- If it was destroyed, just respawn it immediately
+            else
+              -- If it was not landed, then it is either dead or destroyed, just respawn it immediately
               -- But not deactivables, when they're destroyed by the user radio item, they must reamin so.\
               if is_group_dead(group:getName()) then
                 helper.data.spawnedNames[group:getName()] = nil
