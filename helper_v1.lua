@@ -6,10 +6,6 @@ Author: RAF
 This script takes some concepts from all my other scripts to a more targeted helper for missions
 in a way that follows some conventions for missions style and editing.
 
-Combinations:
-[periodic] + [activable]: will not spawn at first, but wait for the user to activate it
-[periodic] + [deactivable]: will spawn immediately, but will not respawn automatically (but still be destroyed automatically at landing time)
-
 + Feature 1: Spawnables
 - Tag: [spawnable]
 Templates: any non-static group with a late activation flag.
@@ -37,7 +33,6 @@ do
   -- declare the helper object
   helper = {}
   helper.version = 1
-
   -- Here to keep all the data stuff
   helper.data = {}
   helper.data.spawnables = {}
@@ -47,17 +42,14 @@ do
   -- This is internal: keeps track of the menus to remove from radio items
   helper.data.menuToRemove = {}
   -- Keep track of what was spaened
-  helper.data.spawnedNames = {}
-  
+  helper.data.spawnedNames = {}  
   -- Adds groups of radio items with their callback
   -- a nil groupId goes for all users.
-  helper.addRadioItemsToTarget = function(self, target, menuTitle, groupNames, autoRemove, callback, menuToRemove)
-    
+  helper.addRadioItemsToTarget = function(self, target, menuTitle, groupNames, autoRemove, callback, menuToRemove)    
     -- Exit if no items
     if #groupNames == 0 then
       return
-    end
-    
+    end   
     -- Actual group scanning now
     local scanAndAdd = function (groupNames, addSubMenu, addCommand, removeCommand)
       local count = #groupNames
@@ -75,8 +67,11 @@ do
           parentMenu = addSubMenu("Group " .. groupCT, submenu)
           groupCT = groupCT + 1
         end
+        -- Strip out the tags from the name so that they appear as 'clean' in the menu radio item
         local strippedName = string.gsub(string.gsub(name, '%[.+%]', ''), '%s+', '')
         if autoRemove then
+          -- Auto removal means that once the menu is getting called, the same menu gets removed from the radio items
+          -- This is accomplished by passing an extra removal function (removeFN) to the callback
           local key = menuTitle..'-'..name
           local path = addCommand(strippedName, parentMenu, callback, {self = self, key = key, name = name, removeFN = removeCommand})
           self.data.menuToRemove[key] = path
@@ -85,7 +80,8 @@ do
         end
       end
     end
-    
+    -- Special block for autodetecting coalition
+    -- the radio items of the groups will be available to users of the same coalition of those groups
     if target.autoCoalition then
       local addSubMenu = nil
       local addCommand = nil
@@ -125,21 +121,22 @@ do
       local addSubMenu = nil
       local addCommand = nil
       local removeCommand = nil
+      -- No target, means anyone gets to operate on everything
       if target == nil then
         addSubMenu = missionCommands.addSubMenu(name, path)
         addCommand = missionCommands.addCommand(name, path, fn, pars)
         removeCommand = missionCommands.removeItem(path)
       elseif target.groupId ~= nil then
+        -- Adding them instead to a specific groupId only (ie. a single player)
+        -- But all of them. This could be intended for example for game masters.
         -- Dynamic functions based on parameter, contextual with groupId, if present
         addSubMenu = function (name, path) return missionCommands.addSubMenuForGroup(groupId, name, path) end
         addCommand = function (name, path, fn, pars) return missionCommands.addCommandForGroup(groupId, name, path, fn, pars) end
         removeCommand = function (path) return missionCommands.removeItemForGroup(groupId, path) end
       end
       scanAndAdd(groupNames, addSubMenu, addCommand, removeCommand)
-    end
-    
+    end    
   end
-
   -- (callback) Function to spawn/clone a gorup
   helper.spawn = function(pars)
     local s = pars.self
@@ -148,7 +145,6 @@ do
     local newGroup = mist.teleportToPoint({gpName = name, action = 'clone', route = mist.getGroupRoute(name, true)})
     helper.data.spawnedNames[newGroup['name']] = name
   end
-
   -- (callback) activates a group
   -- it also works as a start command to the uncontrolled crafts
   -- pars = {self, name, key, removeFN}
@@ -162,7 +158,6 @@ do
     -- set the command 'start' for the uncontrolled crafts
     groupobj:getController():setCommand({id = "Start", params = {}})
   end
-
   -- (callback) deactivates a group
   -- pars = {self, name, key, removeFN}
   helper.deactivate = function (pars)
@@ -173,8 +168,7 @@ do
     if pars.removeFN then pars.removeFN(s.data.menuToRemove[pars.key]) end
     -- for the late activation ones, deactivation will destroy them anyway
     trigger.action.deactivateGroup(groupobj)
-  end
-  
+  end  
   -- inside (callback) called at any world event, filters for landing AIs with [periodic] tag, destroys them after 10 minutes of touchdown
   -- also, for the same conditions, but if the group is destroyed, immediately respawn it
   helper.initPeriodics = function(self)
@@ -198,9 +192,6 @@ do
 	  end    
     -- must be a function, non a variable
     local function hook(event)
-      
-   
-      
       -- If it is not a Player and the event is either LAND or DEAD...
       if event and event.initiator and not Unit.getPlayerName(event.initiator) and (
                event.id == world.event.S_EVENT_LAND
@@ -242,8 +233,7 @@ do
         self.spawn({name = name})
       end
     end
-  end
-  
+  end  
   -- Scanners, these will load data from the mission file.
   -- Since the mission file is static anyway, this must be done only once.
   helper.scan = function (self)
@@ -263,7 +253,6 @@ do
     table.sort(self.data.deactivables)
     table.sort(self.data.periodics)
   end
-
   -- Init function makes everything initialize and actualize.
   helper.init = function(self)
     -- Scans all items from mission file to internal tables
@@ -279,9 +268,7 @@ do
     -- initiate the periodic groups system
     self:initPeriodics()
   end
-
   -- Starting point
   helper:init()
-  env.info('Mission helper v'..helper.version..' loaded.')
-  
+  env.info('Mission helper v'..helper.version..' loaded.')  
 end
