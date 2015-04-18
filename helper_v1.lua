@@ -68,7 +68,7 @@ do
           groupCT = groupCT + 1
         end
         -- Strip out the tags from the name so that they appear as 'clean' in the menu radio item
-        local strippedName = string.gsub(string.gsub(name, '%[.+%]', ''), '%s+', '')
+        local strippedName = string.gsub(name, '%[.+%]%s*', '')
         if autoRemove then
           -- Auto removal means that once the menu is getting called, the same menu gets removed from the radio items
           -- This is accomplished by passing an extra removal function (removeFN) to the callback
@@ -149,6 +149,7 @@ do
   -- it also works as a start command to the uncontrolled crafts
   -- pars = {self, name, key, removeFN}
   helper.activate = function (pars)
+    local s = pars.self
     local group = pars.name
     local groupobj = Group.getByName(group)
     -- Remove the radio item since it has been called
