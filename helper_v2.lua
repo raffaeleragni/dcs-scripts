@@ -21,6 +21,10 @@ Activates some either late activable groups or uncontrolled aircraft. Deactivati
 - Tags: [periodic]
 This kind of groups will be cloned/spawned at startup, and again immediately after their death. This way also they will not clutter the radio items. These flight crafts will be also destroyed automatically after 10 minutes of touchdown, which makes this feature perfect for air traffic: after their destroy they will spawn again because of the rule above.
 
++ Feature 4: Holdable groups
+- Tags: [holdable]
+This group will be stopped or resume its course when radio item is called. Airborne groups will orbit instead.
+
 ]]--
 
 -- MIST must be present and be at least 3.0
@@ -32,17 +36,20 @@ end
 do
   -- declare the helper object
   helper = {}
-  helper.version = 1
+  helper.version = 2
   -- Here to keep all the data stuff
   helper.data = {}
   helper.data.spawnables = {}
   helper.data.activables = {}
   helper.data.deactivables = {}
   helper.data.periodics = {}
+  helper.data.holdables = {}
   -- This is internal: keeps track of the menus to remove from radio items
   helper.data.menuToRemove = {}
   -- Keep track of what was spaened
   helper.data.spawnedNames = {}  
+  -- Keep track of holding or not holding groups
+  helper.data.holdableHoldingFlags = {}
   -- Adds groups of radio items with their callback
   -- a nil groupId goes for all users.
   helper.addRadioItemsToTarget = function(self, target, menuTitle, groupNames, autoRemove, callback, menuToRemove)    
@@ -169,7 +176,20 @@ do
     if pars.removeFN then pars.removeFN(s.data.menuToRemove[pars.key]) end
     -- for the late activation ones, deactivation will destroy them anyway
     trigger.action.deactivateGroup(groupobj)
-  end  
+  end
+  -- (callback) hold or resume a group
+  -- pars = {self, name, key, removeFN}
+  helper.holdable = function (pars)
+    local s = pars.self
+    local group = pars.name
+    local groupobj = Group.getByName(group)
+    s.data.holdableHoldingFlags[group] = not s.data.holdableHoldingFlags[group]
+    if not s.data.holdableHoldingFlags[group] then
+      trigger.action.groupContinueMoving(groupobj)
+    else
+      trigger.action.groupStopMoving(groupobj)
+    end
+  end
   -- inside (callback) called at any world event, filters for landing AIs with [periodic] tag, destroys them after 10 minutes of touchdown
   -- also, for the same conditions, but if the group is destroyed, immediately respawn it
   helper.initPeriodics = function(self)
@@ -248,11 +268,13 @@ do
       checkAndInsert(name, '%[activable%]', self.data.activables)
       checkAndInsert(name, '%[deactivable%]', self.data.deactivables)
       checkAndInsert(name, '%[periodic%]', self.data.periodics)
+	  checkAndInsert(name, '%[holdable%]', self.data.holdables)
     end
     table.sort(self.data.spawnables)
     table.sort(self.data.activables)
     table.sort(self.data.deactivables)
     table.sort(self.data.periodics)
+	table.sort(self.data.holdables)
   end
   -- Init function makes everything initialize and actualize.
   helper.init = function(self)
@@ -263,6 +285,7 @@ do
       self:addRadioItemsToTarget(target, 'Spawnables', self.data.spawnables, false, self.spawn)
       self:addRadioItemsToTarget(target, 'Activables', self.data.activables, true, self.activate)
       self:addRadioItemsToTarget(target, 'Deactivables', self.data.deactivables, true, self.deactivate)
+	  self:addRadioItemsToTarget(target, 'Holdables', self.data.holdables, true, self.holdable)
     end
     -- Add items to their respective coalition owners
     addItems({autoCoalition = true})
