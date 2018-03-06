@@ -27,7 +27,7 @@ This group will be stopped or resume its course when radio item is called. Airbo
 Possible configuration, add a helper_config object:
 
 helperConfig = {
-  autoCoalition: true|false -- default is false. when true only red players access to red units and so on, when false, everyone access everythng.
+  autoCoalition = true|false -- default is false. when true only red players access to red units and so on, when false, everyone access everythng.
 }
 
 Load that as a SCRIPT snippet, BEFORE loading the helper!
@@ -310,22 +310,24 @@ do
           -- and contains the tag in the name...
           if group and group:getName() and helper.data.spawnedNames[group:getName()] then
             local originalName = helper.data.spawnedNames[group:getName()]
-            if event.id == world.event.S_EVENT_LAND then
-              helper.data.spawnedNames[group:getName()] = nil
-              -- If is landed, trigger a destroy for after 10 minutes from now
-              local function destroyGroup(pars)
-                pars.g:destroy()
-                self.spawn({name = originalName})
-              end
-              env.info(HELPER_LOG_PREFIX..'PERIODIC :: periodic group "'..originalName..'", landed. Scheduling clone in 10 minutes.')
-              timer.scheduleFunction(destroyGroup, {g = group}, timer.getTime() + 600)
-            else
-              -- If it was not landed, then it is either dead or destroyed, just respawn it immediately
-              -- But not deactivables, when they're destroyed by the user radio item, they must remain so.
-              if string.find(originalName, '%[periodic%]') and is_group_dead(group:getName())  then
+            if not string.find(originalName, '%[spawnable%]|%[activable%]|%[deactivable%]') then
+              if event.id == world.event.S_EVENT_LAND then
                 helper.data.spawnedNames[group:getName()] = nil
-                self.spawn({name = originalName})
-                env.info(HELPER_LOG_PREFIX..'PERIODIC :: periodic group "'..originalName..'", dead. Cloned a new one.')
+                -- If is landed, trigger a destroy for after 10 minutes from now
+                local function destroyGroup(pars)
+                  pars.g:destroy()
+                  self.spawn({name = originalName})
+                end
+                env.info(HELPER_LOG_PREFIX..'PERIODIC :: periodic group "'..originalName..'", landed. Scheduling clone in 10 minutes.')
+                timer.scheduleFunction(destroyGroup, {g = group}, timer.getTime() + 600)
+              else
+                -- If it was not landed, then it is either dead or destroyed, just respawn it immediately
+                -- But not deactivables, when they're destroyed by the user radio item, they must remain so.
+                if string.find(originalName, '%[periodic%]') and is_group_dead(group:getName())  then
+                  helper.data.spawnedNames[group:getName()] = nil
+                  self.spawn({name = originalName})
+                  env.info(HELPER_LOG_PREFIX..'PERIODIC :: periodic group "'..originalName..'", dead. Cloned a new one.')
+                end
               end
             end
           end
