@@ -323,7 +323,7 @@ do
               else
                 -- If it was not landed, then it is either dead or destroyed, just respawn it immediately
                 -- But not deactivables, when they're destroyed by the user radio item, they must remain so.
-                if string.find(originalName, '%[periodic%]') and is_group_dead(group:getName())  then
+                if originalName and string.find(originalName, '%[periodic%]') and is_group_dead(group:getName())  then
                   helper.data.spawnedNames[group:getName()] = nil
                   self.spawn({name = originalName})
                   env.info(HELPER_LOG_PREFIX..'PERIODIC :: periodic group "'..originalName..'", dead. Cloned a new one.')
@@ -347,7 +347,7 @@ do
     for i, name in ipairs(self.data.periodics) do
       -- But spawn it only if it doesn't have any other tags.
       -- This because maybe the user wants a periodic but to activate it manually the first time
-      if string.find(originalName, '%[periodic%]') then
+      if name and string.find(name, '%[periodic%]') then
         env.info(HELPER_LOG_PREFIX..'PERIODIC :: spawning first instance of "'..name..'"...')
         self.spawn({name = name})
         env.info(HELPER_LOG_PREFIX..'PERIODIC :: spawned first instance of "'..name..'".')
