@@ -310,7 +310,7 @@ do
           -- and contains the tag in the name...
           if group and group:getName() and helper.data.spawnedNames[group:getName()] then
             local originalName = helper.data.spawnedNames[group:getName()]
-            if not string.find(originalName, '%[spawnable%]|%[activable%]|%[deactivable%]') then
+            if string.find(originalName, '%[periodic%]') then
               if event.id == world.event.S_EVENT_LAND then
                 helper.data.spawnedNames[group:getName()] = nil
                 -- If is landed, trigger a destroy for after 10 minutes from now
@@ -347,7 +347,7 @@ do
     for i, name in ipairs(self.data.periodics) do
       -- But spawn it only if it doesn't have any other tags.
       -- This because maybe the user wants a periodic but to activate it manually the first time
-      if not string.find(name, '%[spawnable%]|%[activable%]|%[deactivable%]') then
+      if string.find(originalName, '%[periodic%]') then
         env.info(HELPER_LOG_PREFIX..'PERIODIC :: spawning first instance of "'..name..'"...')
         self.spawn({name = name})
         env.info(HELPER_LOG_PREFIX..'PERIODIC :: spawned first instance of "'..name..'".')
