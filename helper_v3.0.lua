@@ -24,6 +24,10 @@ This kind of groups will be cloned/spawned at startup, and again immediately aft
 - Tags: [holdable]
 This group will be stopped or resume its course when radio item is called. Airborne groups will orbit instead.
 
++ Feature 5: Managed spawnables
+- Tags: [M:<number>]
+This will spawn the group if enough funds per coalitions are available and funds will be subtracted. The number is the amount of cost for this group.
+
 Possible configuration, add a helper_config object:
 
 helperConfig = {
@@ -40,6 +44,9 @@ if not mist or mist.majorVersion < 3 then
   return
 end
 
+-- declare the helper object
+helper = {}
+
 -- Keep the scope out with a block
 do
   HELPER_LOG_PREFIX = 'MisisonHelper :: '
@@ -53,8 +60,7 @@ do
     end
     return str
   end 
-  -- declare the helper object
-  helper = {}
+
   helper.version = 2
   -- Here to keep all the data stuff
   helper.data = {}
@@ -63,12 +69,36 @@ do
   helper.data.deactivables = {}
   helper.data.periodics = {}
   helper.data.holdables = {}
+  helper.data.managed = {}
   -- This is internal: keeps track of the menus to remove from radio items
   helper.data.menuToRemove = {}
   -- Keep track of what was spaened
   helper.data.spawnedNames = {}  
   -- Keep track of holding or not holding groups
   helper.data.holdableHoldingFlags = {}
+  -- funds
+  helper.funds = {}
+  helper.funds.global = 0
+  helper.funds.red = 0
+  helper.funds.blue = 0
+  helper.add_funds = function(self, amount, coa)
+    if amount < 0 then
+      return
+    end
+    if coa and coa == coalition.side.RED then
+      helper.funds.red = helper.funds.red + amount
+      env.info(HELPER_LOG_PREFIX..'FUNDS :: RED FUNDS NOW: '..helper.funds.red)
+      trigger.action.outTextForCoalition(coalition.side.RED, "RED FUNDS ADDED. NOW: "..helper.funds.red, 10, false)
+    elseif coa and coa == coalition.side.BLUE then
+      helper.funds.blue = helper.funds.blue + amount
+      env.info(HELPER_LOG_PREFIX..'FUNDS :: BLUE FUNDS NOW: '..helper.funds.blue)
+      trigger.action.outTextForCoalition(coalition.side.BLUE, "BLUE FUNDS ADDED. NOW: "..helper.funds.blue, 10, false)
+    else
+      helper.funds.global = helper.funds.global + amount
+      env.info(HELPER_LOG_PREFIX..'FUNDS :: GLOBAL FUNDS NOW: '..helper.funds.global)
+      trigger.action.outText("FUNDS ADDED. NOW: "..helper.funds.global, 10, false)
+    end
+  end
   -- Adds groups of radio items with their callback
   -- a nil groupId goes for all users.
   helper.addRadioItemsToTarget = function(self, target, menuTitle, groupNames, autoRemove, callback, menuToRemove)    
@@ -79,7 +109,7 @@ do
       return
     end
     -- Actual group scanning now
-    local scanAndAdd = function (groupNames, addSubMenu, addCommand, removeCommand)
+    local scanAndAdd = function (groupNames, addSubMenu, addCommand, removeCommand, coa)
       env.info(HELPER_LOG_PREFIX..'ADDRADIOITEM :: GROUPSCAN :: scanning groups for adding radio items...')
       local count = #groupNames
       if count == 0 then
@@ -101,14 +131,19 @@ do
         end
         -- Strip out the tags from the name so that they appear as 'clean' in the menu radio item
         local strippedName = string.gsub(name, '%[.+%]%s*', '')
+        _, _, optionalCost = string.find(name, "%[M:([0-9]+)%]%s*")
+        optionalCost = tonumber(optionalCost)
+        if optionalCost > 0 then
+          strippedName = strippedName..' (cost '..optionalCost..')'
+        end
         if autoRemove then
           -- Auto removal means that once the menu is getting called, the same menu gets removed from the radio items
           -- This is accomplished by passing an extra removal function (removeFN) to the callback
           local key = menuTitle..'-'..name
-          self.data.menuToRemove[key] = addCommand(strippedName, parentMenu, callback, {self = self, key = key, name = name, removeFN = removeCommand})
+          self.data.menuToRemove[key] = addCommand(strippedName, parentMenu, callback, {self = self, key = key, name = name, removeFN = removeCommand, coa = coa, cost = optionalCost})
           env.info(HELPER_LOG_PREFIX..'ADDRADIOITEM :: GROUPSCAN :: added one time only radio item "'..name..'".')
         else
-          addCommand(strippedName, parentMenu, callback, {self = self, name = name})
+          addCommand(strippedName, parentMenu, callback, {self = self, name = name, coa = coa, cost = optionalCost})
           env.info(HELPER_LOG_PREFIX..'ADDRADIOITEM :: GROUPSCAN :: added persistent radio item "'..name..'".')
         end
       end
@@ -152,11 +187,10 @@ do
           return missionCommands.removeItemForCoalition(coa, path)
         end
         env.info(HELPER_LOG_PREFIX..'ADDRADIOITEM :: adding radio items for coalition: "'..coa..'"...')
-        scanAndAdd(groupNamesByCoalition[coa], addSubMenu, addCommand, removeCommand)
+        scanAndAdd(groupNamesByCoalition[coa], addSubMenu, addCommand, removeCommand, coa)
         env.info(HELPER_LOG_PREFIX..'ADDRADIOITEM :: coalition "'..coa..'" complete.')
       end
     else
-
       -- Functions overriding
       -- Depending on target, call the right function (and wrap them accordingly)
       local addSubMenu = nil
@@ -195,7 +229,7 @@ do
           return missionCommands.removeItemForGroup(groupId, path)
         end
       end
-      scanAndAdd(groupNames, addSubMenu, addCommand, removeCommand)
+      scanAndAdd(groupNames, addSubMenu, addCommand, removeCommand, nil)
     end    
   end
   -- (callback) Function to spawn/clone a gorup
@@ -261,6 +295,45 @@ do
       env.info(HELPER_LOG_PREFIX..'HOLDABLE :: resuming group "'..group..'".')
       trigger.action.groupStopMoving(groupobj)
     end
+  end
+  -- (callback) Function to manage a spawn with a cost
+  helper.managed = function(pars)
+    local s = pars.self
+    local name = pars.name
+    local coa = pars.coa
+    local cost = pars.cost
+    -- Check for funds and remove them or deny if not enough
+    -- Either per coalition or use the global funds
+    if coa and coa == coalition.side.RED then
+      if helper.funds.red < cost then
+        env.info(HELPER_LOG_PREFIX..'MANAGED SPAWN :: not enough funds for "'..name)
+        trigger.action.outTextForCoalition(coalition.side.RED, "RED FUNDS: NOT ENOUGH, AVAILABLE IS: "..helper.funds.red, 5, false)
+        return
+      end
+      helper.funds.red = helper.funds.red - cost
+      trigger.action.outTextForCoalition(coalition.side.RED, "RED FUNDS SPENT. NOW: "..helper.funds.red, 10, false)
+    elseif coa and coa == coalition.side.BLUE then
+      if helper.funds.blue < cost then
+        env.info(HELPER_LOG_PREFIX..'MANAGED SPAWN :: not enough funds for "'..name)
+        trigger.action.outTextForCoalition(coalition.side.BLUE, "BLUE FUNDS: NOT ENOUGH, AVAILABLE IS: "..helper.funds.blue, 5, false)
+        return
+      end
+      helper.funds.blue = helper.funds.blue - cost
+      trigger.action.outTextForCoalition(coalition.side.BLUE, "BLUE FUNDS SPENT. NOW: "..helper.funds.blue, 10, false)
+    else
+      if helper.funds.global < cost then
+        env.info(HELPER_LOG_PREFIX..'MANAGED SPAWN :: not enough funds for "'..name)
+        trigger.action.outText("FUNDS: NOT ENOUGH, AVAILABLE IS: "..helper.funds.global, 5, false)
+        return
+      end
+      helper.funds.global = helper.funds.global - cost
+      trigger.action.outText("FUNDS SPENT. NOW: "..helper.funds.global, 10, false)
+    end
+    env.info(HELPER_LOG_PREFIX..'MANAGED SPAWN :: cloning group "'..name..'"...')
+    -- Have to use this shortcut, otherwise the clone is not working properly (on mist 3.2)
+    local newGroup = mist.teleportToPoint({gpName = name, action = 'clone', route = mist.getGroupRoute(name, true)})
+    helper.data.spawnedNames[newGroup['name']] = name
+    env.info(HELPER_LOG_PREFIX..'MANAGED SPAWN :: cloned group "'..name..'".')
   end
   -- inside (callback) called at any world event, filters for landing AIs with [periodic] tag, destroys them after 10 minutes of touchdown
   -- also, for the same conditions, but if the group is destroyed, immediately respawn it
@@ -370,6 +443,7 @@ do
       checkAndInsert(name, '%[deactivable%]', self.data.deactivables)
       checkAndInsert(name, '%[periodic%]', self.data.periodics)
 	    checkAndInsert(name, '%[holdable%]', self.data.holdables)
+      checkAndInsert(name, '%[M:[0-9]+%]', self.data.managed)
     end
     env.info(HELPER_LOG_PREFIX..'SCAN :: sorting tables...')
     table.sort(self.data.spawnables)
@@ -377,6 +451,7 @@ do
     table.sort(self.data.deactivables)
     table.sort(self.data.periodics)
     table.sort(self.data.holdables)
+    table.sort(self.data.managed)
     env.info(HELPER_LOG_PREFIX..'SCAN :: unit scan complete.')
   end
   -- Init function makes everything initialize and actualize.
@@ -388,9 +463,10 @@ do
     local addItems = function(target)
       env.info(HELPER_LOG_PREFIX..'INIT :: adding radio items...')
       self:addRadioItemsToTarget(target, 'Spawnables', self.data.spawnables, false, self.spawn)
+      self:addRadioItemsToTarget(target, 'Managed spawnables', self.data.managed, false, self.managed)
       self:addRadioItemsToTarget(target, 'Activables', self.data.activables, true, self.activate)
       self:addRadioItemsToTarget(target, 'Deactivables', self.data.deactivables, true, self.deactivate)
-	    self:addRadioItemsToTarget(target, 'Holdables', self.data.holdables, true, self.holdable)
+      self:addRadioItemsToTarget(target, 'Holdables', self.data.holdables, true, self.holdable)
       env.info(HELPER_LOG_PREFIX..'INIT :: radio items added.')
     end
     if config and config.autoCoalition then
