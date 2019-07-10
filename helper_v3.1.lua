@@ -246,9 +246,10 @@ do
   helper.spawn = function(pars)
     local s = pars.self
     local name = pars.name
+    local coa = pars.coa
     env.info(HELPER_LOG_PREFIX..'SPAWN :: cloning group "'..name..'"...')
     -- Have to use this shortcut, otherwise the clone is not working properly (on mist 3.2)
-    local newGroup = mist.teleportToPoint({gpName = name, action = 'clone', route = mist.getGroupRoute(name, true)})
+    local newGroup = s:lowlevel_clonespawn(name, coa)
     helper.data.spawnedNames[newGroup['name']] = name
     env.info(HELPER_LOG_PREFIX..'SPAWN :: cloned group "'..name..'".')
   end
@@ -344,10 +345,38 @@ do
     end
     s:print_funds(coa)
     env.info(HELPER_LOG_PREFIX..'MANAGED SPAWN :: cloning group "'..name..'"...')
-    -- Have to use this shortcut, otherwise the clone is not working properly (on mist 3.2)
-    local newGroup = mist.teleportToPoint({gpName = name, action = 'clone', route = mist.getGroupRoute(name, true)})
+    local newGroup = s:lowlevel_clonespawn(name, coa)
     helper.data.spawnedNames[newGroup['name']] = name
     env.info(HELPER_LOG_PREFIX..'MANAGED SPAWN :: cloned group "'..name..'".')
+  end
+  helper.lowlevel_clonespawn = function(self, name, coa)
+    local marks = world.getMarkPanels()
+    local foundMark = nil
+    for i, obj in ipairs(marks) do
+      if ((coa and coa == obj.coalition) or (not coa)) and obj.text == 'spawn' then
+        foundMark = obj
+      end
+    end
+    if foundMark then
+      -- some fucked up conversion that I figured out via debugging...
+      local newPoint = {}
+      newPoint.x = foundMark.pos.z
+      newPoint.y = foundMark.pos.x
+      env.info(HELPER_LOG_PREFIX..'SPAWN :: x='..newPoint.x..' y='..newPoint.y)
+      return mist.teleportToPoint({
+        gpName = name,
+        action = 'clone',
+        route = mist.getGroupRoute(name, true),
+        point = newPoint,
+        disperse = true,
+        radius = 200,
+        maxDisp = 100,
+        innerRadius = 10
+      })
+    else
+      env.info(HELPER_LOG_PREFIX..'SPAWN :: cloning with no marker, original position')
+      return mist.cloneGroup(name, true)
+    end
   end
   -- inside (callback) called at any world event, filters for landing AIs with [periodic] tag, destroys them after 10 minutes of touchdown
   -- also, for the same conditions, but if the group is destroyed, immediately respawn it
