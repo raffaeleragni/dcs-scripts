@@ -357,7 +357,7 @@ do
         foundMark = obj
       end
     end
-    if foundMark then
+    if self.config.markedSpawn and foundMark then
       -- some fucked up conversion that I figured out via debugging...
       local newPoint = {}
       newPoint.x = foundMark.pos.z
@@ -510,8 +510,12 @@ do
       self:addRadioItemsToTarget(target, 'Activables', self.data.activables, true, self.activate)
       self:addRadioItemsToTarget(target, 'Deactivables', self.data.deactivables, true, self.deactivate)
       self:addRadioItemsToTarget(target, 'Holdables', self.data.holdables, true, self.holdable)
-
       env.info(HELPER_LOG_PREFIX..'INIT :: radio items added.')
+    end
+    self.config = {}
+    self.config.markedSpawn = false
+    if config and config.markedSpawn then
+      self.config.markedSpawn = true
     end
     if config and config.autoCoalition then
       addItems({autoCoalition = true})
