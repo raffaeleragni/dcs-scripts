@@ -81,6 +81,15 @@ do
   helper.funds.global = 0
   helper.funds.red = 0
   helper.funds.blue = 0
+  helper.print_funds = function(self, coa)
+    if coa and coa == coalition.side.RED then
+      trigger.action.outTextForCoalition(coalition.side.RED, "RED FUNDS: "..helper.funds.red, 10, false)
+    elseif coa and coa == coalition.side.BLUE then
+      trigger.action.outTextForCoalition(coalition.side.BLUE, "BLUE FUNDS: "..helper.funds.blue, 10, false)
+    else
+      trigger.action.outText("FUNDS: "..helper.funds.global, 10, false)
+    end
+  end
   helper.add_funds = function(self, amount, coa)
     if amount < 0 then
       return
@@ -88,16 +97,17 @@ do
     if coa and coa == coalition.side.RED then
       helper.funds.red = helper.funds.red + amount
       env.info(HELPER_LOG_PREFIX..'FUNDS :: RED FUNDS NOW: '..helper.funds.red)
-      trigger.action.outTextForCoalition(coalition.side.RED, "RED FUNDS ADDED. NOW: "..helper.funds.red, 10, false)
+      trigger.action.outTextForCoalition(coalition.side.RED, "RED FUNDS ADDED.", 10, false)
     elseif coa and coa == coalition.side.BLUE then
       helper.funds.blue = helper.funds.blue + amount
       env.info(HELPER_LOG_PREFIX..'FUNDS :: BLUE FUNDS NOW: '..helper.funds.blue)
-      trigger.action.outTextForCoalition(coalition.side.BLUE, "BLUE FUNDS ADDED. NOW: "..helper.funds.blue, 10, false)
+      trigger.action.outTextForCoalition(coalition.side.BLUE, "BLUE FUNDS ADDED. ", 10, false)
     else
       helper.funds.global = helper.funds.global + amount
       env.info(HELPER_LOG_PREFIX..'FUNDS :: GLOBAL FUNDS NOW: '..helper.funds.global)
-      trigger.action.outText("FUNDS ADDED. NOW: "..helper.funds.global, 10, false)
+      trigger.action.outText("FUNDS ADDED.", 10, false)
     end
+    self:print_funds(coa)
   end
   -- Adds groups of radio items with their callback
   -- a nil groupId goes for all users.
@@ -307,28 +317,32 @@ do
     if coa and coa == coalition.side.RED then
       if helper.funds.red < cost then
         env.info(HELPER_LOG_PREFIX..'MANAGED SPAWN :: not enough funds for "'..name)
-        trigger.action.outTextForCoalition(coalition.side.RED, "RED FUNDS: NOT ENOUGH, AVAILABLE IS: "..helper.funds.red, 5, false)
+        trigger.action.outTextForCoalition(coalition.side.RED, "RED FUNDS: NOT ENOUGH", 5, false)
+        s:print_funds(coa)
         return
       end
       helper.funds.red = helper.funds.red - cost
-      trigger.action.outTextForCoalition(coalition.side.RED, "RED FUNDS SPENT. NOW: "..helper.funds.red, 10, false)
+      trigger.action.outTextForCoalition(coalition.side.RED, "RED FUNDS SPENT: "..cost, 10, false)
     elseif coa and coa == coalition.side.BLUE then
       if helper.funds.blue < cost then
         env.info(HELPER_LOG_PREFIX..'MANAGED SPAWN :: not enough funds for "'..name)
-        trigger.action.outTextForCoalition(coalition.side.BLUE, "BLUE FUNDS: NOT ENOUGH, AVAILABLE IS: "..helper.funds.blue, 5, false)
+        trigger.action.outTextForCoalition(coalition.side.BLUE, "BLUE FUNDS: NOT ENOUGH", 5, false)
+        s:print_funds(coa)
         return
       end
       helper.funds.blue = helper.funds.blue - cost
-      trigger.action.outTextForCoalition(coalition.side.BLUE, "BLUE FUNDS SPENT. NOW: "..helper.funds.blue, 10, false)
+      trigger.action.outTextForCoalition(coalition.side.BLUE, "BLUE FUNDS SPENT: "..cost, 10, false)
     else
       if helper.funds.global < cost then
         env.info(HELPER_LOG_PREFIX..'MANAGED SPAWN :: not enough funds for "'..name)
         trigger.action.outText("FUNDS: NOT ENOUGH, AVAILABLE IS: "..helper.funds.global, 5, false)
+        s:print_funds(coa)
         return
       end
       helper.funds.global = helper.funds.global - cost
-      trigger.action.outText("FUNDS SPENT. NOW: "..helper.funds.global, 10, false)
+      trigger.action.outText("FUNDS SPENT: "..cost, 10, false)
     end
+    s:print_funds(coa)
     env.info(HELPER_LOG_PREFIX..'MANAGED SPAWN :: cloning group "'..name..'"...')
     -- Have to use this shortcut, otherwise the clone is not working properly (on mist 3.2)
     local newGroup = mist.teleportToPoint({gpName = name, action = 'clone', route = mist.getGroupRoute(name, true)})
@@ -467,6 +481,7 @@ do
       self:addRadioItemsToTarget(target, 'Activables', self.data.activables, true, self.activate)
       self:addRadioItemsToTarget(target, 'Deactivables', self.data.deactivables, true, self.deactivate)
       self:addRadioItemsToTarget(target, 'Holdables', self.data.holdables, true, self.holdable)
+
       env.info(HELPER_LOG_PREFIX..'INIT :: radio items added.')
     end
     if config and config.autoCoalition then
