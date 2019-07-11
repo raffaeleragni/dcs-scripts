@@ -83,10 +83,13 @@ do
   helper.funds.blue = 0
   helper.print_funds = function(self, coa)
     if coa and coa == coalition.side.RED then
+      env.info(HELPER_LOG_PREFIX..'FUNDS :: RED FUNDS NOW: '..helper.funds.red)
       trigger.action.outTextForCoalition(coalition.side.RED, "RED FUNDS: "..helper.funds.red, 10, false)
     elseif coa and coa == coalition.side.BLUE then
+      env.info(HELPER_LOG_PREFIX..'FUNDS :: BLUE FUNDS NOW: '..helper.funds.blue)
       trigger.action.outTextForCoalition(coalition.side.BLUE, "BLUE FUNDS: "..helper.funds.blue, 10, false)
     else
+      env.info(HELPER_LOG_PREFIX..'FUNDS :: GLOBAL FUNDS NOW: '..helper.funds.global)
       trigger.action.outText("FUNDS: "..helper.funds.global, 10, false)
     end
   end
@@ -96,16 +99,13 @@ do
     end
     if coa and coa == coalition.side.RED then
       helper.funds.red = helper.funds.red + amount
-      env.info(HELPER_LOG_PREFIX..'FUNDS :: RED FUNDS NOW: '..helper.funds.red)
-      trigger.action.outTextForCoalition(coalition.side.RED, "RED FUNDS ADDED.", 10, false)
+      trigger.action.outTextForCoalition(coalition.side.RED, "RED FUNDS ADDED: +"..amount, 10, false)
     elseif coa and coa == coalition.side.BLUE then
       helper.funds.blue = helper.funds.blue + amount
-      env.info(HELPER_LOG_PREFIX..'FUNDS :: BLUE FUNDS NOW: '..helper.funds.blue)
-      trigger.action.outTextForCoalition(coalition.side.BLUE, "BLUE FUNDS ADDED. ", 10, false)
+      trigger.action.outTextForCoalition(coalition.side.BLUE, "BLUE FUNDS ADDED: +"..amount, 10, false)
     else
       helper.funds.global = helper.funds.global + amount
-      env.info(HELPER_LOG_PREFIX..'FUNDS :: GLOBAL FUNDS NOW: '..helper.funds.global)
-      trigger.action.outText("FUNDS ADDED.", 10, false)
+      trigger.action.outText("FUNDS ADDED: +"..amount, 10, false)
     end
     self:print_funds(coa)
   end
@@ -143,7 +143,7 @@ do
         local strippedName = string.gsub(name, '%[.+%]%s*', '')
         _, _, optionalCost = string.find(name, "%[M:([0-9]+)%]%s*")
         optionalCost = tonumber(optionalCost)
-        if optionalCost > 0 then
+        if optionalCost and optionalCost > 0 then
           strippedName = strippedName..' (cost '..optionalCost..')'
         end
         if autoRemove then
