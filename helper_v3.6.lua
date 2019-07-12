@@ -307,6 +307,11 @@ do
       trigger.action.groupStopMoving(groupobj)
     end
   end
+  helper.cb_print_funds = function(pars)
+    local s = pars.self
+    local coa = pars.coa
+    s:print_funds(coa)
+  end
   -- (callback) Function to manage a spawn with a cost
   helper.managed = function(pars)
     local s = pars.self
@@ -375,7 +380,11 @@ do
       })
     else
       env.info(HELPER_LOG_PREFIX..'SPAWN :: cloning with no marker, original position')
-      return mist.cloneGroup(name, true)
+      return mist.teleportToPoint({
+        gpName = name,
+        action = 'clone',
+        route = mist.getGroupRoute(name, true),
+      })
     end
   end
   -- inside (callback) called at any world event, filters for landing AIs with [periodic] tag, destroys them after 10 minutes of touchdown
@@ -481,20 +490,20 @@ do
     end
     env.info(HELPER_LOG_PREFIX..'SCAN :: unit scan starting...')
     for name, group in pairs(mist.DBs.groupsByName) do
+      checkAndInsert(name, '%[M:[0-9]+%]', self.data.managed)
       checkAndInsert(name, '%[spawnable%]', self.data.spawnables)
       checkAndInsert(name, '%[activable%]', self.data.activables)
       checkAndInsert(name, '%[deactivable%]', self.data.deactivables)
       checkAndInsert(name, '%[periodic%]', self.data.periodics)
 	    checkAndInsert(name, '%[holdable%]', self.data.holdables)
-      checkAndInsert(name, '%[M:[0-9]+%]', self.data.managed)
     end
     env.info(HELPER_LOG_PREFIX..'SCAN :: sorting tables...')
+    table.sort(self.data.managed)
     table.sort(self.data.spawnables)
     table.sort(self.data.activables)
     table.sort(self.data.deactivables)
     table.sort(self.data.periodics)
     table.sort(self.data.holdables)
-    table.sort(self.data.managed)
     env.info(HELPER_LOG_PREFIX..'SCAN :: unit scan complete.')
   end
   -- Init function makes everything initialize and actualize.
@@ -505,8 +514,10 @@ do
     -- add items for all types depending on target
     local addItems = function(target)
       env.info(HELPER_LOG_PREFIX..'INIT :: adding radio items...')
+      missionCommands.addCommandForCoalition(coalition.side.RED, 'Print funds', nil, self.cb_print_funds, {self = self, coa = coalition.side.RED})
+      missionCommands.addCommandForCoalition(coalition.side.BLUE, 'Print funds', nil, self.cb_print_funds, {self = self, coa = coalition.side.BLUE})
+      self:addRadioItemsToTarget(target, 'Buy', self.data.managed, false, self.managed)
       self:addRadioItemsToTarget(target, 'Spawnables', self.data.spawnables, false, self.spawn)
-      self:addRadioItemsToTarget(target, 'Managed spawnables', self.data.managed, false, self.managed)
       self:addRadioItemsToTarget(target, 'Activables', self.data.activables, true, self.activate)
       self:addRadioItemsToTarget(target, 'Deactivables', self.data.deactivables, true, self.deactivate)
       self:addRadioItemsToTarget(target, 'Holdables', self.data.holdables, true, self.holdable)
