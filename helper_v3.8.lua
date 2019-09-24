@@ -367,7 +367,8 @@ do
       local newPoint = {}
       env.info(HELPER_LOG_PREFIX..'MARKPOINT :: x='..foundMark.pos.x..' y='..foundMark.pos.y..' z='..foundMark.pos.z)
       newPoint.x = foundMark.pos.x
-      newPoint.y = foundMark.pos.z
+      newPoint.y = foundMark.pos.y
+      newPoint.z = foundMark.pos.z
       env.info(HELPER_LOG_PREFIX..'SPAWN :: x='..newPoint.x..' y='..newPoint.y)
       return mist.teleportToPoint({
         gpName = name,
