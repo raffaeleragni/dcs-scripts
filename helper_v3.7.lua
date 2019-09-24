@@ -59,7 +59,7 @@ do
       str = str..'/'..(name or '<nil>')
     end
     return str
-  end 
+  end
 
   helper.version = 2
   -- Here to keep all the data stuff
@@ -73,7 +73,7 @@ do
   -- This is internal: keeps track of the menus to remove from radio items
   helper.data.menuToRemove = {}
   -- Keep track of what was spaened
-  helper.data.spawnedNames = {}  
+  helper.data.spawnedNames = {}
   -- Keep track of holding or not holding groups
   helper.data.holdableHoldingFlags = {}
   -- funds
@@ -111,7 +111,7 @@ do
   end
   -- Adds groups of radio items with their callback
   -- a nil groupId goes for all users.
-  helper.addRadioItemsToTarget = function(self, target, menuTitle, groupNames, autoRemove, callback, menuToRemove)    
+  helper.addRadioItemsToTarget = function(self, target, menuTitle, groupNames, autoRemove, callback, menuToRemove)
     env.info(HELPER_LOG_PREFIX..'ADDRADIOITEM :: adding radio items for "'..menuTitle..'"...')
     -- Exit if no items
     if #groupNames == 0 then
@@ -184,13 +184,13 @@ do
       env.info(HELPER_LOG_PREFIX..'ADDRADIOITEM :: grouped items into coalitions.')
       for i, coa in ipairs(coalitionsList) do
         -- assign to all users of the respective coalition of the subject item
-        addSubMenu = function (name, path) 
+        addSubMenu = function (name, path)
           env.info(HELPER_LOG_PREFIX..'ADDRADIOITEM :: adding sub-menu "'..(name or '<nil>')..'" to path "'..pathToString(path)..'".')
-          return missionCommands.addSubMenuForCoalition(coa, name, path) 
+          return missionCommands.addSubMenuForCoalition(coa, name, path)
         end
-        addCommand = function (name, path, fn, pars) 
+        addCommand = function (name, path, fn, pars)
           env.info(HELPER_LOG_PREFIX..'ADDRADIOITEM :: adding radio item "'..(name or '<nil>')..'" to path "'..pathToString(path)..'".')
-          return missionCommands.addCommandForCoalition(coa, name, path, fn, pars) 
+          return missionCommands.addCommandForCoalition(coa, name, path, fn, pars)
         end
         removeCommand = function (path)
           env.info(HELPER_LOG_PREFIX..'ADDRADIOITEM :: removing radio item with path "'..pathToString(path)..'".')
@@ -240,7 +240,7 @@ do
         end
       end
       scanAndAdd(groupNames, addSubMenu, addCommand, removeCommand, nil)
-    end    
+    end
   end
   -- (callback) Function to spawn/clone a gorup
   helper.spawn = function(pars)
@@ -365,8 +365,9 @@ do
     if self.config.markedSpawn and foundMark then
       -- some fucked up conversion that I figured out via debugging...
       local newPoint = {}
-      newPoint.x = foundMark.pos.z
-      newPoint.y = foundMark.pos.x
+      env.info(HELPER_LOG_PREFIX..'MARKPOINT :: x='..foundMark.pos.x..' y='..foundMark.pos.y..' z='..foundMark.pos.z)
+      newPoint.x = foundMark.pos.x
+      newPoint.y = foundMark.pos.z
       env.info(HELPER_LOG_PREFIX..'SPAWN :: x='..newPoint.x..' y='..newPoint.y)
       return mist.teleportToPoint({
         gpName = name,
@@ -478,7 +479,7 @@ do
         env.info(HELPER_LOG_PREFIX..'PERIODIC :: spawned first instance of "'..name..'".')
       end
     end
-  end  
+  end
   -- Scanners, these will load data from the mission file.
   -- Since the mission file is static anyway, this must be done only once.
   helper.scan = function (self)
@@ -544,5 +545,5 @@ do
   else
     helper:init()
   end
-  env.info(HELPER_LOG_PREFIX..'v'..helper.version..' loaded.')  
+  env.info(HELPER_LOG_PREFIX..'v'..helper.version..' loaded.')
 end
