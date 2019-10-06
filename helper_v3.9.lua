@@ -443,7 +443,7 @@ do
                 -- If is landed, trigger a destroy for after 10 minutes from now
                 local function destroyGroup(pars)
                   pars.g:destroy()
-                  self.spawn({name = originalName})
+                  self.spawn({self = self, name = originalName})
                 end
                 env.info(HELPER_LOG_PREFIX..'PERIODIC :: periodic group "'..originalName..'", landed. Scheduling clone in 10 minutes.')
                 timer.scheduleFunction(destroyGroup, {g = group}, timer.getTime() + 600)
@@ -452,7 +452,7 @@ do
                 -- But not deactivables, when they're destroyed by the user radio item, they must remain so.
                 if originalName and string.find(originalName, '%[periodic%]') and is_group_dead(group:getName())  then
                   helper.data.spawnedNames[group:getName()] = nil
-                  self.spawn({name = originalName})
+                  self.spawn({self = self, name = originalName})
                   env.info(HELPER_LOG_PREFIX..'PERIODIC :: periodic group "'..originalName..'", dead. Cloned a new one.')
                 end
               end
@@ -476,7 +476,7 @@ do
       -- This because maybe the user wants a periodic but to activate it manually the first time
       if name and string.find(name, '%[periodic%]') then
         env.info(HELPER_LOG_PREFIX..'PERIODIC :: spawning first instance of "'..name..'"...')
-        self.spawn({name = name})
+        self.spawn({self = self, name = name})
         env.info(HELPER_LOG_PREFIX..'PERIODIC :: spawned first instance of "'..name..'".')
       end
     end
