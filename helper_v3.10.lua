@@ -5,12 +5,15 @@ Author: RAF
 This script takes some concepts from all my other scripts to a more targeted helper for missions
 in a way that follows some conventions for missions style and editing.
 
+Tags are intended to be added inside the group names in mission editor, including square brackets.
+
 + Feature 1: Spawnables
 - Tag: [spawnable]
 Templates: any non-static group with a late activation flag.
 This feature manages a group of planes/helicopters or ground units (but not statics - also to be tested for naval units) to be
 spawned as many times as desired, leaving the original template in the 'LATE ACTIVATION' state.
 Differently than automan, this section will have its own way to determine coalition allowance to spawn some groups. Tag here is [spawnable].
+If it possible to changhe the spawn point of origin by creating a marker in map with the name "spawn". This needs to be enabled via configuration first.
 
 + Feature 2: Activable/Deactivable
 - Tags: [activable], [deactivable]
@@ -27,11 +30,13 @@ This group will be stopped or resume its course when radio item is called. Airbo
 + Feature 5: Managed spawnables
 - Tags: [M:<number>]
 This will spawn the group if enough funds per coalitions are available and funds will be subtracted. The number is the amount of cost for this group.
+Marker spawn applies.
 
 Possible configuration, add a helper_config object:
 
 helperConfig = {
   autoCoalition = true|false -- default is false. when true only red players access to red units and so on, when false, everyone access everythng.
+  markedSpawn = true -- enable market spawn
 }
 
 Load that as a SCRIPT snippet, BEFORE loading the helper!
@@ -249,9 +254,10 @@ do
     local coa = pars.coa
     env.info(HELPER_LOG_PREFIX..'SPAWN :: cloning group "'..name..'"...')
     -- Have to use this shortcut, otherwise the clone is not working properly (on mist 3.2)
-    local newGroup = s:lowlevel_clonespawn(name, coa)
+    local newGroup = s:lowlevel_clonespawn(name, coa, pars.useMark)
     helper.data.spawnedNames[newGroup['name']] = name
     env.info(HELPER_LOG_PREFIX..'SPAWN :: cloned group "'..name..'".')
+    return newGroup
   end
   -- (callback) activates a group
   -- it also works as a start command to the uncontrolled crafts
@@ -350,11 +356,10 @@ do
     end
     s:print_funds(coa)
     env.info(HELPER_LOG_PREFIX..'MANAGED SPAWN :: cloning group "'..name..'"...')
-    local newGroup = s:lowlevel_clonespawn(name, coa)
-    helper.data.spawnedNames[newGroup['name']] = name
+    local newGroup = s:spawn({self = s, name = name, coa = coa, useMark = true})
     env.info(HELPER_LOG_PREFIX..'MANAGED SPAWN :: cloned group "'..name..'".')
   end
-  helper.lowlevel_clonespawn = function(self, name, coa)
+  helper.lowlevel_clonespawn = function(self, name, coa, useMark)
     local marks = world.getMarkPanels()
     local foundMark = nil
     for i, obj in ipairs(marks) do
@@ -362,7 +367,7 @@ do
         foundMark = obj
       end
     end
-    if self.config.markedSpawn and foundMark then
+    if useMark and self.config.markedSpawn and foundMark then
       -- some fucked up conversion that I figured out via debugging...
       local newPoint = {}
       env.info(HELPER_LOG_PREFIX..'MARKPOINT :: x='..foundMark.pos.x..' y='..foundMark.pos.y..' z='..foundMark.pos.z)
@@ -476,7 +481,7 @@ do
       -- This because maybe the user wants a periodic but to activate it manually the first time
       if name and string.find(name, '%[periodic%]') then
         env.info(HELPER_LOG_PREFIX..'PERIODIC :: spawning first instance of "'..name..'"...')
-        self.spawn({self = self, name = name})
+        self.spawn({self = self, name = name, useMark = false})
         env.info(HELPER_LOG_PREFIX..'PERIODIC :: spawned first instance of "'..name..'".')
       end
     end
