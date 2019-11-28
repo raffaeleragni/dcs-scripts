@@ -155,10 +155,10 @@ do
           -- Auto removal means that once the menu is getting called, the same menu gets removed from the radio items
           -- This is accomplished by passing an extra removal function (removeFN) to the callback
           local key = menuTitle..'-'..name
-          self.data.menuToRemove[key] = addCommand(strippedName, parentMenu, callback, {self = self, key = key, name = name, removeFN = removeCommand, coa = coa, cost = optionalCost})
+          self.data.menuToRemove[key] = addCommand(strippedName, parentMenu, callback, {self = self, key = key, name = name, removeFN = removeCommand, coa = coa, cost = optionalCost, useMark = true})
           env.info(HELPER_LOG_PREFIX..'ADDRADIOITEM :: GROUPSCAN :: added one time only radio item "'..name..'".')
         else
-          addCommand(strippedName, parentMenu, callback, {self = self, name = name, coa = coa, cost = optionalCost})
+          addCommand(strippedName, parentMenu, callback, {self = self, name = name, coa = coa, cost = optionalCost, useMark = true})
           env.info(HELPER_LOG_PREFIX..'ADDRADIOITEM :: GROUPSCAN :: added persistent radio item "'..name..'".')
         end
       end
@@ -448,7 +448,7 @@ do
                 -- If is landed, trigger a destroy for after 10 minutes from now
                 local function destroyGroup(pars)
                   pars.g:destroy()
-                  self.spawn({self = self, name = originalName})
+                  self.spawn({self = self, name = originalName, useMark = false})
                 end
                 env.info(HELPER_LOG_PREFIX..'PERIODIC :: periodic group "'..originalName..'", landed. Scheduling clone in 10 minutes.')
                 timer.scheduleFunction(destroyGroup, {g = group}, timer.getTime() + 600)
@@ -457,7 +457,7 @@ do
                 -- But not deactivables, when they're destroyed by the user radio item, they must remain so.
                 if originalName and string.find(originalName, '%[periodic%]') and is_group_dead(group:getName())  then
                   helper.data.spawnedNames[group:getName()] = nil
-                  self.spawn({self = self, name = originalName})
+                  self.spawn({self = self, name = originalName, useMark = false})
                   env.info(HELPER_LOG_PREFIX..'PERIODIC :: periodic group "'..originalName..'", dead. Cloned a new one.')
                 end
               end
