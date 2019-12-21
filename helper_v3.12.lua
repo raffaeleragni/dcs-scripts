@@ -521,8 +521,12 @@ do
     -- add items for all types depending on target
     local addItems = function(target)
       env.info(HELPER_LOG_PREFIX..'INIT :: adding radio items...')
-      missionCommands.addCommandForCoalition(coalition.side.RED, 'Print funds', nil, self.cb_print_funds, {self = self, coa = coalition.side.RED})
-      missionCommands.addCommandForCoalition(coalition.side.BLUE, 'Print funds', nil, self.cb_print_funds, {self = self, coa = coalition.side.BLUE})
+      -- this needs a special check as it is a static radio item
+      if next(self.data.managed) != nil then
+        missionCommands.addCommandForCoalition(coalition.side.RED, 'Print funds', nil, self.cb_print_funds, {self = self, coa = coalition.side.RED})
+        missionCommands.addCommandForCoalition(coalition.side.BLUE, 'Print funds', nil, self.cb_print_funds, {self = self, coa = coalition.side.BLUE})
+      end
+      -- addRadioItemsToTarget automatically detects if table is empty and does not add radio items in such case
       self:addRadioItemsToTarget(target, 'Buy', self.data.managed, false, self.managed)
       self:addRadioItemsToTarget(target, 'Spawnables', self.data.spawnables, false, self.spawn)
       self:addRadioItemsToTarget(target, 'Activables', self.data.activables, true, self.activate)
