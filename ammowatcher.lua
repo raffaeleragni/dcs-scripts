@@ -12,6 +12,46 @@ do
     ["FA-18C_hornet"] = {
       ["type"] = "jet_fuel",
       ["capacity"] = 4.9
+    },
+    ["F-16C_50"] = {
+      ["type"] = "jet_fuel",
+      ["capacity"] = 3.249
+    },
+    ["F-15C"] = {
+      ["type"] = "jet_fuel",
+      ["capacity"] = 6.103
+    },
+    ["F-14B"] = {
+      ["type"] = "jet_fuel",
+      ["capacity"] = 7.348
+    },
+    ["Su-27"] = {
+      ["type"] = "jet_fuel",
+      ["capacity"] = 5.590
+    },
+    ["Su-33"] = {
+      ["type"] = "jet_fuel",
+      ["capacity"] = 9.500
+    },
+    ["MiG-29S"] = {
+      ["type"] = "jet_fuel",
+      ["capacity"] = 3.493
+    },
+    ["UH-1H"] = {
+      ["type"] = "gasoline",
+      ["capacity"] = 0.631
+    },
+    ["Ka-50"] = {
+      ["type"] = "gasoline",
+      ["capacity"] = 1.450
+    },
+    ["AV8BNA"] = {
+      ["type"] = "jet_fuel",
+      ["capacity"] = 3.519
+    },
+    ["M-2000C"] = {
+      ["type"] = "jet_fuel",
+      ["capacity"] = 3.165
     }
   }
   
