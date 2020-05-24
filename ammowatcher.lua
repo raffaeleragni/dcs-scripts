@@ -52,6 +52,10 @@ do
     ["M-2000C"] = {
       ["type"] = "jet_fuel",
       ["capacity"] = 3.165
+    },
+    ["JF-17"] = {
+      ["type"] = "jet_fuel",
+      ["capacity"] = 2.325
     }
   }
   
