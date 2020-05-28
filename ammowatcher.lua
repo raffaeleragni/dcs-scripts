@@ -43,7 +43,7 @@ do
     },
     ["Su-27"] = {
       ["type"] = "jet_fuel",
-      ["capacity"] = 5.590
+      ["capacity"] = 9.400
     },
     ["Su-33"] = {
       ["type"] = "jet_fuel",
@@ -72,6 +72,10 @@ do
     ["JF-17"] = {
       ["type"] = "jet_fuel",
       ["capacity"] = 2.325
+    },
+    ["A-10C"] = {
+      ["type"] = "jet_fuel",
+      ["capacity"] = 5.029
     }
   }
   
