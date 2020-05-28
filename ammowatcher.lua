@@ -1,6 +1,22 @@
+--[[
+   Copyright 2020 Raffaele Ragni
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+]]--
 do
 
-  local logpref = "DCS warehouse /----------/ "
+  local logpref = "DCSWarehouse watcher /----------/ "
+  env.info(logpref.."Included", false)
   
   -- fuel capacity for each vehicle in tons (not kg!)
   -- fuel types
@@ -77,7 +93,7 @@ do
   local airbaseDeltaAmmo = {}
   local airbaseDeltaFuel = {}
   
-  function buildAirbaseDeltaAmmo()
+  function buildAirbaseDelta()
     local s = ""
     for airbaseName,ammo in pairs(airbaseDeltaAmmo) do
       for ammoType,deltaAmount in pairs(ammo) do
@@ -102,6 +118,13 @@ do
     return "{\"data\":["..s.."]}"
   end
   
+  function sendAirbaseDelta()
+    local s = buildAirbaseDelta()
+    if s and s ~= "" then
+      print(logpref.."\n\n"..s.."\n\n")
+    end
+  end
+  
   function changeAirbaseDeltaAmmo(airbaseKey, typeKey, amount)
     if not airbaseDeltaAmmo[airbaseKey] then
       airbaseDeltaAmmo[airbaseKey] = {}
@@ -121,21 +144,11 @@ do
     end
     airbaseDeltaFuel[airbaseKey][fuelType] = airbaseDeltaFuel[airbaseKey][fuelType] + tons
   end
-  
-  
-  
-  
-  -------------------------------------------------------------------------------
-  
-  --   E V E N T S
-  
-  -------------------------------------------------------------------------------
-  
-  
+
   local Event_Handler = {}
   function Event_Handler:onEvent(event)
     if event.id == world.event.S_EVENT_MISSION_END then
-      env.info(logpref.."WAREHOUSE: "..buildAirbaseDeltaAmmo())
+      sendAirbaseDelta()
     elseif event.id == world.event.S_EVENT_TAKEOFF or event.id == world.event.S_EVENT_LAND then
       local unit = event.initiator
       if unit and event.place then
@@ -177,5 +190,5 @@ do
     end
   end
   world.addEventHandler(Event_Handler)
-  
-  end
+
+end
