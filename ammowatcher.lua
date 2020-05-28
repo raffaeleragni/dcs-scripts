@@ -121,7 +121,7 @@ do
   function sendAirbaseDelta()
     local s = buildAirbaseDelta()
     if s and s ~= "" then
-      print(logpref.."\n\n"..s.."\n\n")
+      env.info(logpref.."\n\n"..s.."\n\n", false)
     end
   end
   
