@@ -53,13 +53,25 @@ do
       ["type"] = "jet_fuel",
       ["capacity"] = 3.493
     },
+    ["Su-25T"] = {
+      ["type"] = "jet_fuel",
+      ["capacity"] = 3.790
+    },
     ["UH-1H"] = {
-      ["type"] = "gasoline",
+      ["type"] = "jet_fuel",
       ["capacity"] = 0.631
     },
     ["Ka-50"] = {
-      ["type"] = "gasoline",
+      ["type"] = "jet_fuel",
       ["capacity"] = 1.450
+    },
+    ["Mi-8MT"] = {
+      ["type"] = "jet_fuel",
+      ["capacity"] = 1.929
+    },
+    ["SA342M"] = {
+      ["type"] = "jet_fuel",
+      ["capacity"] = 0.416
     },
     ["AV8BNA"] = {
       ["type"] = "jet_fuel",
@@ -74,6 +86,10 @@ do
       ["capacity"] = 2.325
     },
     ["A-10C"] = {
+      ["type"] = "jet_fuel",
+      ["capacity"] = 5.029
+    },
+    ["A-10C_2"] = {
       ["type"] = "jet_fuel",
       ["capacity"] = 5.029
     }
